@@ -1,15 +1,11 @@
 const mongoose = require("mongoose");
 
-const schema = mongoose.schema({
+const schema = mongoose.Schema({
     level: String,
     email: String,
     location: String,
     proc_type: String,
-    log: String,
-    created_by: {
-        type: mongoose.SchemaTypes.ObjectId,
-        required: true
-    }
+    log: mongoose.SchemaTypes.Mixed
 },{
     versionKey: false,
     timestamps:{
