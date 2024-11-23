@@ -1,9 +1,11 @@
+//#region eski
 var express = require('express');
 var router = express.Router();
 
 const fs = require("fs");
 
 // dinamik route yapısını oluştur 
+// eslint-disable-next-line no-undef
 let routes = fs.readdirSync(__dirname);
 for (let route of routes) {
     // js dosyalarını adını index.js dosyasını hariç  alıp route yapısı oluşturuyoruz56
@@ -15,3 +17,5 @@ for (let route of routes) {
 }
 
 module.exports = router;
+//#endregion
+
