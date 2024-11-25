@@ -1,93 +1,112 @@
-var express = require('express');
+/* eslint-disable no-unused-vars */
+var express = require("express");
 var router = express.Router();
 
 const Categories = require("../db/models/Categories");
-const Response = require('../lib/Response');
-const CustomError = require('../lib/Error');
+const Response = require("../lib/Response");
+const CustomError = require("../lib/Error");
 const Enum = require("../config/Enum");
 const AuditLogs = require("../lib/AuditLogs");
 const logger = require("../lib/logger/LoggerClass");
+const auth = require("../lib/auth")(); // fonksiyon olarak çağır
+
+router.all("*", auth.authenticate(), (req, res, next) => {
+  next();
+});
 
 /* GET categories listing. */
-router.get('/', async (req, res, next) => {
-  try{
-      let categories = await Categories.find({});
-      res.json(Response.successResponse(categories));
-  }catch(err){
+router.get("/", auth.checkRoles("category_view"), async (req, res, next) => {
+  try {
+    let categories = await Categories.find({});
+    res.json(Response.successResponse(categories));
+  } catch (err) {
     let errorResponse = Response.errorResponse(err);
     res.status(errorResponse.code).json(errorResponse);
   }
 });
 
-// CREATE 
-router.post('/add', async (req, res) => {
+// CREATE
+router.post("/add", auth.checkRoles("category_add"), async (req, res) => {
   let body = req.body;
-  try{
-      
-    if(!body.name) throw new CustomError(Enum.HTTP_CODES.BAD_REQUEST, "Validation Error","name field must be filled");
+  try {
+    if (!body.name)
+      throw new CustomError(
+        Enum.HTTP_CODES.BAD_REQUEST,
+        "Validation Error",
+        "name field must be filled"
+      );
 
     let category = new Categories({
       name: body.name,
       is_active: true,
-      created_by: req.user?.id
+      created_by: req.user?.id,
     });
 
     await category.save();
-    AuditLogs.info(req.user?.email, "Categories", "Add", {category});
+    AuditLogs.info(req.user?.email, "Categories", "Add", { category });
     logger.info(req.user?.email, "Categories", "Add", category);
 
-    res.json(Response.successResponse({success: true}));
-
-  }catch(err){
+    res.json(Response.successResponse({ success: true }));
+  } catch (err) {
     logger.error(req.user?.email, "Categories", "Add", err);
     let errorResponse = Response.errorResponse(err);
     res.status(errorResponse.code).json(errorResponse);
   }
 });
 
-// UPDATE 
-router.post('/update', async (req, res) => {
+// UPDATE
+router.post("/update", auth.checkRoles("category_update"), async (req, res) => {
   let body = req.body;
-  try{
+  try {
+    if (!body._id)
+      throw new CustomError(
+        Enum.HTTP_CODES.BAD_REQUEST,
+        "Validation Error",
+        "_id field must be filled"
+      );
 
-      if(!body._id) throw new CustomError(Enum.HTTP_CODES.BAD_REQUEST, "Validation Error","_id field must be filled");
+    let updates = {};
 
-      let updates = {};
+    if (body.name) updates.name = body.name;
+    if (typeof body.is_active === "boolean") updates.is_active = body.is_active;
 
-      if(body.name) updates.name = body.name;
-      if(typeof body.is_active === "boolean") updates.is_active = body.is_active;
-      
-      // güncelleme işlemini yap
-      await Categories.updateOne({_id: body._id}, updates);
-      AuditLogs.info(req.user?.email, "Categories", "Update", {_id: body.id, ...updates});
-      logger.info(req.user?.email, "Categories", "Update", {_id: body.id, ...updates});
+    // güncelleme işlemini yap
+    await Categories.updateOne({ _id: body._id }, updates);
+    AuditLogs.info(req.user?.email, "Categories", "Update", {
+      _id: body.id,
+      ...updates,
+    });
+    logger.info(req.user?.email, "Categories", "Update", {
+      _id: body.id,
+      ...updates,
+    });
 
-      res.json(Response.successResponse({success: true}));
-
-  }catch(err){
+    res.json(Response.successResponse({ success: true }));
+  } catch (err) {
     logger.error(req.user?.email, "Categories", "Update", err);
     let errorResponse = Response.errorResponse(err);
     res.status(errorResponse.code).json(errorResponse);
   }
 });
 
-
-// DELETE 
-router.post('/delete', async (req, res) => {
+// DELETE
+router.post("/delete", auth.checkRoles("category_delete"), async (req, res) => {
   let body = req.body;
-  try{
+  try {
+    if (!body._id)
+      throw new CustomError(
+        Enum.HTTP_CODES.BAD_REQUEST,
+        "Validation Error",
+        "_id field must be filled"
+      );
 
-      if(!body._id) throw new CustomError(Enum.HTTP_CODES.BAD_REQUEST, "Validation Error","_id field must be filled");
-      
-      // silme işlemini yap
-      await Categories.deleteOne({_id: body._id});
-      AuditLogs.info(req.user?.email, "Categories", "Delete", {_id: body.id});
-      logger.info(req.user?.email, "Categories", "Delete", {_id: body.id});
-      
+    // silme işlemini yap
+    await Categories.deleteOne({ _id: body._id });
+    AuditLogs.info(req.user?.email, "Categories", "Delete", { _id: body.id });
+    logger.info(req.user?.email, "Categories", "Delete", { _id: body.id });
 
-      res.json(Response.successResponse({success: true}));
-
-  }catch(err){
+    res.json(Response.successResponse({ success: true }));
+  } catch (err) {
     logger.error(req.user?.email, "Categories", "Delete", err);
     let errorResponse = Response.errorResponse(err);
     res.status(errorResponse.code).json(errorResponse);
