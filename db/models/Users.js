@@ -3,6 +3,7 @@ const is = require("is_js");
 const { PASS_LENGTH, HTTP_CODES } = require("../../config/Enum");
 const CustomError = require("../../lib/Error");
 const bcrypt = require("bcrypt");
+const { DEFAULT_LANG } = require("../../config");
 
 const schema = mongoose.Schema(
   {
@@ -12,6 +13,7 @@ const schema = mongoose.Schema(
     first_name: String,
     last_name: String,
     phone_number: String,
+    language: { type: Boolean, default: DEFAULT_LANG },
   },
   {
     versionKey: false,

@@ -9,4 +9,5 @@ module.exports = {
       ? parseInt(process.env.TOKEN_EXPIRE_TIME)
       : 86400, // 24 * 60 * 60
   },
+  DEFAULT_LANG: process.env.DEFAULT_LANG || "EN",
 };
