@@ -1,9 +1,9 @@
-var express = require("express");
+const express = require("express");
 
 const moment = require("moment");
 const Response = require("../lib/Response");
 const AuditLogs = require("../db/models/AuditLogs");
-var router = express.Router();
+const router = express.Router();
 const auth = require("../lib/auth")(); // fonksiyon olarak çağır
 
 router.all("*", auth.authenticate(), (req, res, next) => {
