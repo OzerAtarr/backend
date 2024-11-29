@@ -14,13 +14,32 @@ const config = require("../config");
 const i18n = new (require("../lib/i18n"))(config.DEFAULT_LANG);
 const emitter = require("../lib/Emitter");
 const excelExport = new (require("../lib/Export"))();
+const excelImport = new (require("../lib/Import"))();
 const fs = require("fs");
+const multer = require("multer");
+const path = require("path");
+
+//#region Dosyadan veri alma
+
+let multerStorage = multer.diskStorage({
+  destination: (req, file, next) => {
+      next(null, config.FILE_UPLOAD_PATH)
+  },
+  filename: (req, file, next) => {
+      next(null, file.fieldname + "_" + Date.now() + path.extname(file.originalname));
+  }
+})
+
+const upload = multer({ storage: multerStorage }).single("pb_file");
+
+//#endregion
 
 router.all("*", auth.authenticate(), (req, res, next) => {
   next();
+  multer;
 });
 
-/* GET categories listing. */
+//#region GET categories listing
 router.get("/", auth.checkRoles("category_view"), async (req, res, next) => {
   try {
     let categories = await Categories.find({});
@@ -30,8 +49,9 @@ router.get("/", auth.checkRoles("category_view"), async (req, res, next) => {
     res.status(errorResponse.code).json(errorResponse);
   }
 });
+//#endregion
 
-// CREATE
+//#region CREATE
 router.post("/add", auth.checkRoles("category_add"), async (req, res) => {
   let body = req.body;
   try {
@@ -64,8 +84,9 @@ router.post("/add", auth.checkRoles("category_add"), async (req, res) => {
     res.status(errorResponse.code).json(errorResponse);
   }
 });
+//#endregion
 
-// UPDATE
+//#region UPDATE
 router.post("/update", auth.checkRoles("category_update"), async (req, res) => {
   let body = req.body;
   try {
@@ -101,8 +122,9 @@ router.post("/update", auth.checkRoles("category_update"), async (req, res) => {
     res.status(errorResponse.code).json(errorResponse);
   }
 });
+//#endregion
 
-// DELETE
+//#region DELETE
 router.post("/delete", auth.checkRoles("category_delete"), async (req, res) => {
   let body = req.body;
   try {
@@ -127,7 +149,9 @@ router.post("/delete", auth.checkRoles("category_delete"), async (req, res) => {
     res.status(errorResponse.code).json(errorResponse);
   }
 });
+//#endregion
 
+//#region Export
 router.post("/export", auth.checkRoles("category_export"), async (req, res) => {
   try {
     let categories = await Categories.find({});
@@ -152,5 +176,40 @@ router.post("/export", auth.checkRoles("category_export"), async (req, res) => {
     res.status(errorResponse.code).json(errorResponse);
   }
 });
+//#endregion
 
+//#region Import
+router.post(
+  "/import",
+  auth.checkRoles("category_add"),
+  upload,
+  async (req, res) => {
+    try {
+      let file = req.file;
+      let body = req.body;
+
+      let rows = excelImport.fromExcel(file.path);
+
+      for (let i = 1; i < rows.length; i++) {
+        let [name, is_active, user, created_at, updated_at] = rows[i];
+        if (name) {
+          await Categories.create({
+            name,
+            is_active,
+            created_by: req.user._id,
+          });
+        }
+      }
+
+      res
+        .status(Enum.HTTP_CODES.CREATED)
+        .json(Response.successResponse(req.body, Enum.HTTP_CODES.CREATED));
+    } catch (err) {
+      let errorResponse = Response.errorResponse(err);
+      res.status(errorResponse.code).json(Response.errorResponse(err));
+    }
+  }
+);
+
+//#endregion
 module.exports = router;
